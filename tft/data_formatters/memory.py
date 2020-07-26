@@ -22,6 +22,8 @@ Defines dataset specific column definitions and data transformations.
 import data_formatters.base
 import libs.utils as utils
 import sklearn.preprocessing
+from datetime import datetime, timedelta
+import time
 
 GenericDataFormatter = data_formatters.base.GenericDataFormatter
 DataTypes = data_formatters.base.DataTypes
@@ -38,9 +40,12 @@ class MemoryFormatter(GenericDataFormatter):
   """
 
   _column_definition = [
-      ('SysID', DataTypes.CATEGORICAL, InputTypes.ID),
-      ('date', DataTypes.DATE, InputTypes.TIME),
+      ('id', DataTypes.CATEGORICAL, InputTypes.ID),
+      ('Date', DataTypes.DATE, InputTypes.TIME),
       ('Mem_avg', DataTypes.REAL_VALUED, InputTypes.TARGET),
+      ('days_from_start', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+      ('SysID', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
+
       ('ActiveTsEntries_sum', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('PlObj_sum', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('TsEntries_sum', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
@@ -49,7 +54,7 @@ class MemoryFormatter(GenericDataFormatter):
       ('TsEntries_max', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('PlArea_N', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
 
-      ('ODATA_TRANSFER_JOB_20', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
+      ('/AIF/ODATA_TRANSFER_JOB_20', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('/AIF/PERS_RUN_AUTO_REPROCESS', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('/IBP/ALERT_ANA_FILL_BUFFER', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('/IBP/ALERT_CREATE_NOTIF', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
@@ -240,11 +245,12 @@ class MemoryFormatter(GenericDataFormatter):
       ('TMS_BCI_START_SERVICE', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
       ('ZLA_NEW_NORMALIZATION', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
 
+
       # ('day_of_week', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
       # ('day_of_month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
       # ('week_of_year', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
       # ('month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
-      # ('Region', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
+      # ('Region', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT)
   ]
 
   def __init__(self):
@@ -256,7 +262,8 @@ class MemoryFormatter(GenericDataFormatter):
     self._target_scaler = None
     self._num_classes_per_cat_input = None
 
-  def split_data(self, df, valid_boundary=2016, test_boundary=2018):
+  # def split_data(self, df, valid_boundary=time.strptime("1/1/2020", "%d/%m/%Y"), test_boundary=time.strptime("2/1/2020", "%d/%m/%Y")):
+  def split_data(self, df, valid_boundary="2020-01-01", test_boundary="2020-02-01"):
     """Splits data frame into training-validation-test data frames.
 
     This also calibrates scaling object, and transforms data for each split.
@@ -272,7 +279,7 @@ class MemoryFormatter(GenericDataFormatter):
 
     print('Formatting train-valid-test splits.')
 
-    index = df['year']
+    index = df['Date']
     train = df.loc[index < valid_boundary]
     valid = df.loc[(index >= valid_boundary) & (index < test_boundary)]
     test = df.loc[index >= test_boundary]
@@ -386,8 +393,8 @@ class MemoryFormatter(GenericDataFormatter):
     """Returns fixed model parameters for experiments."""
 
     fixed_params = {
-        'total_time_steps': 252 + 5,
-        'num_encoder_steps': 252,
+        'total_time_steps': 8,
+        'num_encoder_steps': 7,
         'num_epochs': 100,
         'early_stopping_patience': 5,
         'multiprocessing_workers': 5,

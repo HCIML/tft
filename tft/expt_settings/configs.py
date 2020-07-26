@@ -26,6 +26,7 @@ import data_formatters.electricity
 import data_formatters.favorita
 import data_formatters.traffic
 import data_formatters.volatility
+import data_formatters.memory
 
 
 class ExperimentConfig(object):
@@ -82,7 +83,7 @@ class ExperimentConfig(object):
         'electricity': 'hourly_electricity.csv',
         'traffic': 'hourly_data.csv',
         'favorita': 'favorita_consolidated.csv',
-        'memory': 'memory_usage.csv'
+        'memory': 'memory_usage_finished_no_zero.csv'
     }
 
     return os.path.join(self.data_folder, csv_map[self.experiment])
