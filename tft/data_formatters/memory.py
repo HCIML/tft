@@ -44,6 +44,10 @@ class MemoryFormatter(GenericDataFormatter):
       ('Date', DataTypes.DATE, InputTypes.TIME),
       ('Mem_avg', DataTypes.REAL_VALUED, InputTypes.TARGET),
       ('days_from_start', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+      ('day_of_week', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+      ('year', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+      ('month', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
+      ('day', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
       ('SysID', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT),
 
       ('ActiveTsEntries_sum', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
