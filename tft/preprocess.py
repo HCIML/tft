@@ -105,7 +105,6 @@ if __name__ == '__main__':
     mem_data = mem_data.loc[:, (mem_data != 0).any(axis=0)]
     mem_data['index'] = mem_data['Date']
     first_col = mem_data.pop('index')
-    mem_data.insert(0, '', first_col)
     sys_counts = mem_data['SysID'].value_counts()
 
     dates = mem_data['Date'].unique()
@@ -121,6 +120,7 @@ if __name__ == '__main__':
         merged = merged.append(merged_res, ignore_index=True)
 
     merged = merged.fillna(0)
+    merged.insert(0, '', first_col)
 
     merged['id'] = merged['SysID']
     # merged = cross_join.merge(mem_data, left_on=["Date", "id"], right_on=["Date", "id"], how='left')
@@ -143,8 +143,8 @@ if __name__ == '__main__':
     merged['day'] = merged['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').day)
 
 
-    #mem_data.to_csv('memory_usage_finished_no_zero.csv', index=False)
+    merged.to_csv('memory_usage_finished_no_zero.csv', index=False)
     mem_data_test = merged[['', 'id', 'SysID', 'Date', 'Mem_avg', 'ActiveTsEntries_sum', 'days_from_start', 'weekday',
                               'month', 'year', 'day']]
-    #mem_data_test.to_csv('memory_usage_finished_no_zero_test.csv', index=False)
+    mem_data_test.to_csv('memory_usage_finished_no_zero_test.csv', index=False)
 
