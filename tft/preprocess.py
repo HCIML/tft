@@ -106,43 +106,45 @@ if __name__ == '__main__':
     mem_data['index'] = mem_data['Date']
     first_col = mem_data.pop('index')
     mem_data.insert(0, '', first_col)
-    mem_data['id'] = mem_data['SysID']
-    sys_counts = mem_data['id'].value_counts()
+    sys_counts = mem_data['SysID'].value_counts()
 
     dates = mem_data['Date'].unique()
-    systems = mem_data['id'].unique()
-    index = pd.MultiIndex.from_product([dates, systems], names = ["Date", "id"])
+    systems = mem_data['SysID'].unique()
+    index = pd.MultiIndex.from_product([dates, systems], names = ["Date", "SysID"])
     cross_join = pd.DataFrame(index=index).reset_index()
     merged = pd.DataFrame()
 
     for system in systems:
-        df1 = cross_join[cross_join['id'] == system]
-        df2 = mem_data[mem_data['id'] == system]
-        merged_res = df1.merge(df2, left_on=["Date", "id"], right_on=["Date", "id"], how='left')
+        df1 = cross_join[cross_join['SysID'] == system]
+        df2 = mem_data[mem_data['SysID'] == system]
+        merged_res = df1.merge(df2, left_on=["Date", "SysID"], right_on=["Date", "SysID"], how='left')
         merged = merged.append(merged_res, ignore_index=True)
 
+    merged = merged.fillna(0)
+
+    merged['id'] = merged['SysID']
     # merged = cross_join.merge(mem_data, left_on=["Date", "id"], right_on=["Date", "id"], how='left')
     print(merged)
     print(len(merged))
     print(len(mem_data))
     print(cross_join)
-    print(mem_data['id'].unique())
-    print(len(mem_data['id'].unique()))
+    print(merged['SysID'].unique())
+    print(len(merged['SysID'].unique()))
     print(sys_counts)
     print(len(sys_counts))
     print(len(sys_counts[sys_counts == 221])) # pad 887 systems
     # start_date = date(2019, 7, 27)
     # start_date = date('2019-07-27')
     start_date = datetime.strptime('2019-07-27', '%Y-%m-%d')
-    mem_data['days_from_start'] = mem_data['Date'].apply(lambda x : (datetime.strptime(x, '%Y-%m-%d') - start_date).days)
-    mem_data['weekday'] = mem_data['Date'].apply(lambda x : datetime.strptime(x, '%Y-%m-%d').weekday())
-    mem_data['month'] = mem_data['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').month)
-    mem_data['year'] = mem_data['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').year)
-    mem_data['day'] = mem_data['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').day)
+    merged['days_from_start'] = merged['Date'].apply(lambda x : (datetime.strptime(x, '%Y-%m-%d') - start_date).days)
+    merged['weekday'] = merged['Date'].apply(lambda x : datetime.strptime(x, '%Y-%m-%d').weekday())
+    merged['month'] = merged['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').month)
+    merged['year'] = merged['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').year)
+    merged['day'] = merged['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').day)
 
 
     #mem_data.to_csv('memory_usage_finished_no_zero.csv', index=False)
-    mem_data_test = mem_data[['', 'id', 'SysID', 'Date', 'Mem_avg', 'ActiveTsEntries_sum', 'days_from_start', 'weekday',
+    mem_data_test = merged[['', 'id', 'SysID', 'Date', 'Mem_avg', 'ActiveTsEntries_sum', 'days_from_start', 'weekday',
                               'month', 'year', 'day']]
     #mem_data_test.to_csv('memory_usage_finished_no_zero_test.csv', index=False)
 
