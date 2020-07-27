@@ -102,11 +102,7 @@ if __name__ == '__main__':
     # preprocess.preprocess()
 
     mem_data = pd.read_csv('memory_usage_finished.csv')
-    mem_data = mem_data.loc[:, (mem_data != 0).any(axis=0)]
-    mem_data['index'] = mem_data['Date']
-    first_col = mem_data.pop('index')
     sys_counts = mem_data['SysID'].value_counts()
-
     dates = mem_data['Date'].unique()
     systems = mem_data['SysID'].unique()
     index = pd.MultiIndex.from_product([dates, systems], names = ["Date", "SysID"])
@@ -118,12 +114,16 @@ if __name__ == '__main__':
         df2 = mem_data[mem_data['SysID'] == system]
         merged_res = df1.merge(df2, left_on=["Date", "SysID"], right_on=["Date", "SysID"], how='left')
         merged = merged.append(merged_res, ignore_index=True)
+    # merged = cross_join.merge(mem_data, left_on=["Date", "id"], right_on=["Date", "id"], how='left')
 
     merged = merged.fillna(0)
+    merged = merged.loc[:, (merged != 0).any(axis=0)]
+    merged['index'] = merged['Date']
+    first_col = merged.pop('index')
     merged.insert(0, '', first_col)
 
     merged['id'] = merged['SysID']
-    # merged = cross_join.merge(mem_data, left_on=["Date", "id"], right_on=["Date", "id"], how='left')
+    
     print(merged)
     print(len(merged))
     print(len(mem_data))
