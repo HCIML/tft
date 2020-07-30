@@ -231,8 +231,13 @@ def evaluate(expt_name,
         tf_config = utils.get_default_tensorflow_config(tf_device="cpu")
 
     # Loads hyperparam manager
+    # Sets up default params
+    fixed_params = data_formatter.get_experiment_params()
+    params = data_formatter.get_default_model_params()
+    params["model_folder"] = model_folder
     print("*** Loading hyperparm manager ***")
-    opt_manager = HyperparamOptManager(model_folder=model_folder, override_w_fixed_params=False)
+    opt_manager = HyperparamOptManager({k: [params[k]] for k in params},
+                                       fixed_params, model_folder, False)
     opt_manager.load_results()
 
     # loads data
