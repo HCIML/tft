@@ -123,9 +123,9 @@ if __name__ == '__main__':
     merged.insert(0, '', first_col)
 
     merged['id'] = merged['SysID']
-    
+
     print(merged)
-    print(len(merged))
+    print(len(merged[merged['SysID'] == 'ZPO']))
     print(len(mem_data))
     print(cross_join)
     print(merged['SysID'].unique())
@@ -143,8 +143,8 @@ if __name__ == '__main__':
     merged['day'] = merged['Date'].apply(lambda x: datetime.strptime(x, '%Y-%m-%d').day)
 
 
-    merged.to_csv('memory_usage_finished_no_zero.csv', index=False)
+    #merged.to_csv('memory_usage_finished_no_zero.csv', index=False)
     mem_data_test = merged[['', 'id', 'SysID', 'Date', 'Mem_avg', 'ActiveTsEntries_sum', 'days_from_start', 'weekday',
                               'month', 'year', 'day']]
-    mem_data_test.to_csv('memory_usage_finished_no_zero_test.csv', index=False)
+    #mem_data_test.to_csv('memory_usage_finished_no_zero_test.csv', index=False)
 
