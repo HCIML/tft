@@ -246,7 +246,7 @@ def evaluate(expt_name,
     test = pickle.load(test_file)
     test_file.close()
 
-    valid_file = open("validation_set.pickle", 'rb')
+    valid_file = open("valid_set.pickle", 'rb')
     valid = pickle.load(valid_file)
     valid_file.close()
 
