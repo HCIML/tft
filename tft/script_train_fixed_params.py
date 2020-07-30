@@ -53,6 +53,7 @@ def main(expt_name,
          model_folder,
          data_csv_path,
          data_formatter,
+         with_evaluation,
          use_testing_mode=False):
   """Trains tft based on defined model params.
 
@@ -88,7 +89,8 @@ def main(expt_name,
   print("Loading & splitting data...")
   raw_data = pd.read_csv(data_csv_path, index_col=0)
   # raw_data = raw_data[raw_data["id"]==400000]  # TODO: traffic test(remove)
-  raw_data = raw_data[raw_data["id"] == "MT_001"]  # TODO: electricity test(remove)
+  # raw_data = raw_data[raw_data["id"] == "MT_001"]  # TODO: electricity test(remove)
+  # raw_data = raw_data[raw_data["id"] == "Z6M"]  # TODO: memory test(remove)
   train, valid, test = data_formatter.split_data(raw_data)
   train_samples, valid_samples = data_formatter.get_num_samples_for_calibration(
   )
@@ -99,11 +101,11 @@ def main(expt_name,
   params["model_folder"] = model_folder
 
   # Parameter overrides for testing only! Small sizes used to speed up script.
-  if use_testing_mode:
-    fixed_params["num_epochs"] = 100
-    params["hidden_layer_size"] = 50 # 320
+  # if use_testing_mode:
+    # fixed_params["num_epochs"] = 100
+    # params["hidden_layer_size"] = 50 # 320
     # train_samples, valid_samples = 3431, 336
-    train_samples, valid_samples = 5064, 552
+    # train_samples, valid_samples = 5064, 552
 
   # Sets up hyperparam manager
   print("*** Loading hyperparm manager ***")
@@ -142,74 +144,148 @@ def main(expt_name,
 
       tf.keras.backend.set_session(default_keras_session)
 
-  print("*** Running tests ***")
-  tf.reset_default_graph()
-  with tf.Graph().as_default(), tf.Session(config=tf_config) as sess:
-    tf.keras.backend.set_session(sess)
-    best_params = opt_manager.get_best_params()
-    model = ModelClass(best_params, use_cudnn=use_gpu)
+  if with_evaluation:
 
-    model.load(opt_manager.hyperparam_folder)
+      print("*** Running tests ***")
+      tf.reset_default_graph()
+      with tf.Graph().as_default(), tf.Session(config=tf_config) as sess:
+        tf.keras.backend.set_session(sess)
+        best_params = opt_manager.get_best_params()
+        model = ModelClass(best_params, use_cudnn=use_gpu)
 
-    print("Computing best validation loss")
-    val_loss = model.evaluate(valid)
+        model.load(opt_manager.hyperparam_folder)
 
-    print("Computing test loss")
-    output_map = model.predict(test, return_targets=True)
-    targets = data_formatter.format_predictions(output_map["targets"])
-    p50_forecast = data_formatter.format_predictions(output_map["p50"])
-    p90_forecast = data_formatter.format_predictions(output_map["p90"])
-    p10_forecast = data_formatter.format_predictions(output_map["p10"])
+        print("Computing best validation loss")
+        val_loss = model.evaluate(valid)
 
-    with open('train_set.pickle', 'wb') as handle:
-        pickle.dump(train, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        print("Computing test loss")
+        output_map = model.predict(test, return_targets=True)
+        targets = data_formatter.format_predictions(output_map["targets"])
+        p50_forecast = data_formatter.format_predictions(output_map["p50"])
+        p90_forecast = data_formatter.format_predictions(output_map["p90"])
+        p10_forecast = data_formatter.format_predictions(output_map["p10"])
 
-    with open('valid_set.pickle', 'wb') as handle:
-        pickle.dump(valid, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('train_set.pickle', 'wb') as handle:
+            pickle.dump(train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('test_set.pickle', 'wb') as handle:
-        pickle.dump(test, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('valid_set.pickle', 'wb') as handle:
+            pickle.dump(valid, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('predictions.pickle', 'wb') as handle:
-        pickle.dump(output_map, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('test_set.pickle', 'wb') as handle:
+            pickle.dump(test, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('predictions_formatted.pickle', 'wb') as handle:
-        pickle.dump(targets, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('predictions.pickle', 'wb') as handle:
+            pickle.dump(output_map, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('p50_formatted.pickle', 'wb') as handle:
-        pickle.dump(p50_forecast, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('predictions_formatted.pickle', 'wb') as handle:
+            pickle.dump(targets, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('p90_formatted.pickle', 'wb') as handle:
-        pickle.dump(p90_forecast, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('p50_formatted.pickle', 'wb') as handle:
+            pickle.dump(p50_forecast, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open('p10_formatted.pickle', 'wb') as handle:
-        pickle.dump(p10_forecast, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open('p90_formatted.pickle', 'wb') as handle:
+            pickle.dump(p90_forecast, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def extract_numerical_data(data):
-      """Strips out forecast time and identifier columns."""
-      return data[[
-          col for col in data.columns
-          if col not in {"forecast_time", "identifier"}
-      ]]
-    
-    p50_loss = utils.numpy_normalised_quantile_loss(
-        extract_numerical_data(targets), extract_numerical_data(p50_forecast),
-        0.5)
-    p90_loss = utils.numpy_normalised_quantile_loss(
-        extract_numerical_data(targets), extract_numerical_data(p90_forecast),
-        0.9)
+        with open('p10_formatted.pickle', 'wb') as handle:
+            pickle.dump(p10_forecast, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    tf.keras.backend.set_session(default_keras_session)
+        def extract_numerical_data(data):
+          """Strips out forecast time and identifier columns."""
+          return data[[
+              col for col in data.columns
+              if col not in {"forecast_time", "identifier"}
+          ]]
 
-  print("Training completed @ {}".format(dte.datetime.now()))
-  print("Best validation loss = {}".format(val_loss))
-  print("Params:")
+        p50_loss = utils.numpy_normalised_quantile_loss(
+            extract_numerical_data(targets), extract_numerical_data(p50_forecast),
+            0.5)
+        p90_loss = utils.numpy_normalised_quantile_loss(
+            extract_numerical_data(targets), extract_numerical_data(p90_forecast),
+            0.9)
 
-  for k in best_params:
-    print(k, " = ", best_params[k])
-  print()
-  print("Normalised Quantile Loss for Test Data: P50={}, P90={}".format(
-      p50_loss.mean(), p90_loss.mean()))
+        tf.keras.backend.set_session(default_keras_session)
+
+      print("Training completed @ {}".format(dte.datetime.now()))
+      print("Best validation loss = {}".format(val_loss))
+      print("Params:")
+
+      for k in best_params:
+        print(k, " = ", best_params[k])
+      print()
+      print("Normalised Quantile Loss for Test Data: P50={}, P90={}".format(
+          p50_loss.mean(), p90_loss.mean()))
+
+
+def evaluate(expt_name,
+         use_gpu,
+         model_folder,
+         data_csv_path,
+         data_formatter,
+         use_testing_mode=False):
+
+    print("*** Running tests ***")
+    if use_gpu:
+        tf_config = utils.get_default_tensorflow_config(tf_device="gpu", gpu_id=0)
+
+    else:
+        tf_config = utils.get_default_tensorflow_config(tf_device="cpu")
+
+    # Loads hyperparam manager
+    print("*** Loading hyperparm manager ***")
+    opt_manager = HyperparamOptManager(model_folder=model_folder, override_w_fixed_params=False)
+    opt_manager.load_results()
+
+    # loads data
+    print("*** Loading test and validation sets ***")
+    test_file = open("test_set.pickle", 'rb')
+    test = pickle.load(test_file)
+    test_file.close()
+
+    valid_file = open("validation_set.pickle", 'rb')
+    valid = pickle.load(valid_file)
+    valid_file.close()
+
+    tf.reset_default_graph()
+    with tf.Graph().as_default(), tf.Session(config=tf_config) as sess:
+        tf.keras.backend.set_session(sess)
+        best_params = opt_manager.get_best_params()
+        model = ModelClass(best_params, use_cudnn=use_gpu)
+
+        model.load(opt_manager.hyperparam_folder)
+
+        print("Computing best validation loss")
+        val_loss = model.evaluate(valid)
+
+        print("Computing test loss")
+        output_map = model.predict(test, return_targets=True)
+        targets = data_formatter.format_predictions(output_map["targets"])
+        p50_forecast = data_formatter.format_predictions(output_map["p50"])
+        p90_forecast = data_formatter.format_predictions(output_map["p90"])
+        p10_forecast = data_formatter.format_predictions(output_map["p10"])
+
+        def extract_numerical_data(data):
+            """Strips out forecast time and identifier columns."""
+            return data[[
+                col for col in data.columns
+                if col not in {"forecast_time", "identifier"}
+            ]]
+
+        p50_loss = utils.numpy_normalised_quantile_loss(
+            extract_numerical_data(targets), extract_numerical_data(p50_forecast),
+            0.5)
+        p90_loss = utils.numpy_normalised_quantile_loss(
+            extract_numerical_data(targets), extract_numerical_data(p90_forecast),
+            0.9)
+
+    print("Training completed @ {}".format(dte.datetime.now()))
+    print("Best validation loss = {}".format(val_loss))
+    print("Params:")
+
+    for k in best_params:
+        print(k, " = ", best_params[k])
+    print()
+    print("Normalised Quantile Loss for Test Data: P50={}, P90={}".format(
+        p50_loss.mean(), p90_loss.mean()))
 
 
 if __name__ == "__main__":
@@ -259,6 +335,15 @@ if __name__ == "__main__":
 
   # Customise inputs to main() for new datasets.
   main(
+      expt_name=name,
+      use_gpu=use_tensorflow_with_gpu,
+      model_folder=os.path.join(config.model_folder, "fixed"),
+      data_csv_path=config.data_csv_path,
+      data_formatter=formatter,
+      with_evaluation = True,
+      use_testing_mode=True)  # Change to false to use original default params
+
+  evaluate(
       expt_name=name,
       use_gpu=use_tensorflow_with_gpu,
       model_folder=os.path.join(config.model_folder, "fixed"),
